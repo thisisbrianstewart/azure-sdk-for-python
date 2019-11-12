@@ -12,14 +12,6 @@
 from enum import Enum
 
 
-class IdentityType(str, Enum):
-
-    none = "None"
-    system_assigned = "SystemAssigned"
-    user_assigned = "UserAssigned"
-    system_assigned_user_assigned = "SystemAssigned, UserAssigned"
-
-
 class ProvisioningState(str, Enum):
 
     creating = "Creating"
