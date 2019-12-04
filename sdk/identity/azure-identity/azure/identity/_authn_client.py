@@ -200,7 +200,8 @@ class AuthnClient(AuthnClientBase):
         # type: (...) -> AccessToken
         request = self._prepare_request(method, headers=headers, form_data=form_data, params=params)
         request_time = int(time.time())
-        response = self._pipeline.run(request, stream=False, **kwargs)
+        with self._pipeline:
+            response = self._pipeline.run(request, stream=False, **kwargs)
         token = self._deserialize_and_cache_token(response=response, scopes=scopes, request_time=request_time)
         return token
 

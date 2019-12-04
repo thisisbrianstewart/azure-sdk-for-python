@@ -101,9 +101,12 @@ class MsalTransportAdapter(object):
         request = HttpRequest("GET", url, headers=headers)
         if params:
             request.format_parameters(params)
-        response = self._pipeline.run(
-            request, stream=False, connection_timeout=timeout, connection_verify=verify, **kwargs
-        )
+
+        with self._pipeline:
+            response = self._pipeline.run(
+                request, stream=False, connection_timeout=timeout, connection_verify=verify, **kwargs
+            )
+
         return MsalTransportResponse(response)
 
     def post(
@@ -123,7 +126,10 @@ class MsalTransportAdapter(object):
         if data:
             request.headers["Content-Type"] = "application/x-www-form-urlencoded"
             request.set_formdata_body(data)
-        response = self._pipeline.run(
-            request, stream=False, connection_timeout=timeout, connection_verify=verify, **kwargs
-        )
+
+        with self._pipeline:
+            response = self._pipeline.run(
+                request, stream=False, connection_timeout=timeout, connection_verify=verify, **kwargs
+            )
+
         return MsalTransportResponse(response)

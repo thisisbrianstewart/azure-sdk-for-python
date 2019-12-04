@@ -5,7 +5,6 @@
 """Adapter to substitute an async azure-core pipeline for Requests in MSAL application token acquisition methods."""
 
 import asyncio
-import atexit
 from typing import TYPE_CHECKING
 
 from azure.core.configuration import Configuration
@@ -48,21 +47,7 @@ class MsalTransportAdapter:
             HttpLoggingPolicy(**kwargs),
         ]
         self._transport = transport or AioHttpTransport(configuration=config)
-        atexit.register(self._close_transport_session)  # prevent aiohttp warnings
         self._pipeline = AsyncPipeline(transport=self._transport, policies=policies)
-
-    def _close_transport_session(self) -> None:
-        """If transport has a 'close' method, invoke it."""
-
-        close = getattr(self._transport, "close", None)
-        if not callable(close):
-            return
-
-        if asyncio.iscoroutinefunction(close):
-            # we expect no loop is running because this method should be called only when the interpreter is exiting
-            asyncio.new_event_loop().run_until_complete(close())
-        else:
-            close()
 
     def get(
         self,
@@ -80,7 +65,7 @@ class MsalTransportAdapter:
             request.format_parameters(params)
 
         future = asyncio.run_coroutine_threadsafe(  # type: ignore
-            self._pipeline.run(request, connection_timeout=timeout, connection_verify=verify, **kwargs), loop
+            self._send_request(request, connection_timeout=timeout, connection_verify=verify, **kwargs), loop
         )
         response = future.result(timeout=timeout)
 
@@ -106,7 +91,7 @@ class MsalTransportAdapter:
             request.set_formdata_body(data)
 
         future = asyncio.run_coroutine_threadsafe(  # type: ignore
-            self._pipeline.run(request, connection_timeout=timeout, connection_verify=verify, **kwargs), loop
+            self._send_request(request, connection_timeout=timeout, connection_verify=verify, **kwargs), loop
         )
         response = future.result(timeout=timeout)
 
@@ -119,3 +104,7 @@ class MsalTransportAdapter:
         config.logging_policy = NetworkTraceLoggingPolicy(**kwargs)
         config.retry_policy = AsyncRetryPolicy(**kwargs)
         return config
+
+    async def _send_request(self, *args, **kwargs):
+        async with self._pipeline:
+            return await self._pipeline.run(*args, **kwargs)
