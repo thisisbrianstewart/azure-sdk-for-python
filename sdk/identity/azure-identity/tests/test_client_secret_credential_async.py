@@ -9,7 +9,7 @@ from unittest.mock import Mock
 from azure.core.credentials import AccessToken
 from azure.core.pipeline.policies import ContentDecodePolicy, SansIOHTTPPolicy
 from azure.identity.aio import ClientSecretCredential
-from helpers import async_validating_transport, build_aad_response, mock_response, Request
+from helpers import AsyncMockTransport, async_validating_transport, build_aad_response, mock_response, Request
 
 import pytest
 
@@ -22,7 +22,11 @@ async def test_policies_configurable():
         return mock_response(json_payload=build_aad_response(access_token="**"))
 
     credential = ClientSecretCredential(
-        "tenant-id", "client-id", "client-secret", policies=[ContentDecodePolicy(), policy], transport=Mock(send=send)
+        "tenant-id",
+        "client-id",
+        "client-secret",
+        policies=[ContentDecodePolicy(), policy],
+        transport=AsyncMockTransport(send=send),
     )
 
     await credential.get_token("scope")
@@ -74,7 +78,7 @@ async def test_cache():
         "token_type": "Bearer",
     }
     mock_send = Mock(return_value=mock_response(json_payload=token_payload))
-    transport = Mock(send=asyncio.coroutine(mock_send))
+    transport = AsyncMockTransport(send=asyncio.coroutine(mock_send))
     scope = "scope"
 
     credential = ClientSecretCredential("tenant-id", "client-id", "secret", transport=transport)

@@ -4,12 +4,12 @@
 # ------------------------------------
 import json
 import os
-from unittest.mock import Mock, patch
+from unittest.mock import Mock
 from urllib.parse import urlparse
 
 from azure.core.pipeline.policies import ContentDecodePolicy, SansIOHTTPPolicy
 from azure.identity.aio import CertificateCredential
-from helpers import build_aad_response, urlsafeb64_decode, mock_response
+from helpers import AsyncMockTransport, build_aad_response, urlsafeb64_decode, mock_response
 import pytest
 
 CERT_PATH = os.path.join(os.path.dirname(__file__), "certificate.pem")
@@ -23,7 +23,11 @@ async def test_policies_configurable():
         return mock_response(json_payload=build_aad_response(access_token="**"))
 
     credential = CertificateCredential(
-        "tenant-id", "client-id", CERT_PATH, policies=[ContentDecodePolicy(), policy], transport=Mock(send=send)
+        "tenant-id",
+        "client-id",
+        CERT_PATH,
+        policies=[ContentDecodePolicy(), policy],
+        transport=AsyncMockTransport(send=send),
     )
 
     await credential.get_token("scope")
@@ -47,7 +51,9 @@ async def test_request_url():
         validate_url(request.url)
         return mock_response(json_payload={"token_type": "Bearer", "expires_in": 42, "access_token": access_token})
 
-    cred = CertificateCredential(tenant_id, "client_id", CERT_PATH, transport=Mock(send=mock_send), authority=authority)
+    cred = CertificateCredential(
+        tenant_id, "client_id", CERT_PATH, transport=AsyncMockTransport(send=mock_send), authority=authority
+    )
     token = await cred.get_token("scope")
     assert token.token == access_token
 
@@ -71,6 +77,8 @@ async def test_request_body():
         validate_url(claims["aud"])
         return mock_response(json_payload={"token_type": "Bearer", "expires_in": 42, "access_token": access_token})
 
-    cred = CertificateCredential(tenant_id, "client_id", CERT_PATH, transport=Mock(send=mock_send), authority=authority)
+    cred = CertificateCredential(
+        tenant_id, "client_id", CERT_PATH, transport=AsyncMockTransport(send=mock_send), authority=authority
+    )
     token = await cred.get_token("scope")
     assert token.token == access_token

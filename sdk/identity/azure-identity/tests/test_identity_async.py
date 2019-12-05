@@ -21,7 +21,7 @@ from azure.identity.aio import (
 from azure.identity.aio._credentials.managed_identity import ImdsCredential
 from azure.identity._constants import EnvironmentVariables
 
-from helpers import mock_response, Request, async_validating_transport
+from helpers import AsyncMockTransport, mock_response, Request, async_validating_transport
 
 
 @pytest.mark.asyncio
@@ -130,7 +130,7 @@ async def test_imds_credential_cache():
     )
     mock_send = Mock(return_value=mock_response)
 
-    credential = ImdsCredential(transport=Mock(send=asyncio.coroutine(mock_send)))
+    credential = ImdsCredential(transport=AsyncMockTransport(send=asyncio.coroutine(mock_send)))
     token = await credential.get_token(scope)
     assert token.token == expired
     assert mock_send.call_count == 2  # first request was probing for endpoint availability
@@ -166,7 +166,7 @@ async def test_imds_credential_retries():
         mock_response.status_code = status_code
         try:
             await ImdsCredential(
-                transport=Mock(send=asyncio.coroutine(mock_send), sleep=asyncio.coroutine(lambda _: None))
+                transport=AsyncMockTransport(send=asyncio.coroutine(mock_send), sleep=asyncio.coroutine(lambda _: None))
             ).get_token("scope")
         except ClientAuthenticationError:
             pass
@@ -192,7 +192,9 @@ async def test_managed_identity_app_service():
     environment = {EnvironmentVariables.MSI_SECRET: msi_secret, EnvironmentVariables.MSI_ENDPOINT: "https://foo.bar"}
     with pytest.raises(Exception) as ex:
         with patch("os.environ", environment):
-            await ManagedIdentityCredential(transport=Mock(send=validate_request)).get_token("https://scope")
+            await ManagedIdentityCredential(transport=AsyncMockTransport(send=validate_request)).get_token(
+                "https://scope"
+            )
 
     assert ex.value.message is success_message
 
@@ -214,7 +216,9 @@ async def test_managed_identity_cloud_shell():
     environment = {EnvironmentVariables.MSI_ENDPOINT: msi_endpoint}
     with pytest.raises(Exception) as ex:
         with patch("os.environ", environment):
-            await ManagedIdentityCredential(transport=Mock(send=validate_request)).get_token("https://scope")
+            await ManagedIdentityCredential(transport=AsyncMockTransport(send=validate_request)).get_token(
+                "https://scope"
+            )
 
     assert ex.value.message is success_message
 

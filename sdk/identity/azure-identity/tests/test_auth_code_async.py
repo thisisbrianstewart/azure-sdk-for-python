@@ -11,7 +11,7 @@ from azure.core.pipeline.policies import SansIOHTTPPolicy
 from azure.identity.aio import AuthorizationCodeCredential
 import pytest
 
-from helpers import build_aad_response, mock_response
+from helpers import AsyncMockTransport, build_aad_response, mock_response
 
 
 @pytest.mark.asyncio
@@ -22,7 +22,12 @@ async def test_policies_configurable():
         return mock_response(json_payload=build_aad_response(access_token="**"))
 
     credential = AuthorizationCodeCredential(
-        "tenant-id", "client-id", "auth-code", "http://localhost", policies=[policy], transport=Mock(send=send)
+        "tenant-id",
+        "client-id",
+        "auth-code",
+        "http://localhost",
+        policies=[policy],
+        transport=AsyncMockTransport(send=send),
     )
 
     await credential.get_token("scope")

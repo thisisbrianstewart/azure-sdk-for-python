@@ -2,13 +2,13 @@
 # Copyright (c) Microsoft Corporation.
 # Licensed under the MIT License.
 # ------------------------------------
-from unittest.mock import Mock
+from unittest.mock import MagicMock, Mock
 from urllib.parse import urlparse
 
 from azure.identity.aio._internal.aad_client import AadClient
 import pytest
 
-from helpers import mock_response
+from helpers import AsyncMockTransport, mock_response
 
 
 class MockClient(AadClient):
@@ -22,7 +22,7 @@ class MockClient(AadClient):
 
 @pytest.mark.asyncio
 async def test_uses_msal_correctly():
-    transport = Mock()
+    transport = MagicMock()
     session = Mock(get=transport, post=transport)
 
     client = MockClient("tenant id", "client id", session=session)
@@ -53,7 +53,13 @@ async def test_request_url():
         assert path.startswith("/" + tenant)
         return mock_response(json_payload={"token_type": "Bearer", "expires_in": 42, "access_token": "***"})
 
-    client = AadClient(tenant, "client id", transport=Mock(send=send), authority=authority)
+    client = AadClient(tenant, "client id", transport=AsyncMockTransport(send=send), authority=authority)
 
     await client.obtain_token_by_authorization_code("code", "uri", "scope")
     await client.obtain_token_by_refresh_token("refresh token", "scope")
+
+
+if __name__ == "__main__":
+    import asyncio
+
+    asyncio.run(test_request_url())

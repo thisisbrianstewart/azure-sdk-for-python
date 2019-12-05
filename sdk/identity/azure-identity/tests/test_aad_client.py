@@ -12,9 +12,9 @@ from six.moves.urllib_parse import urlparse
 from helpers import mock_response
 
 try:
-    from unittest.mock import Mock
+    from unittest.mock import MagicMock, Mock
 except ImportError:  # python < 3.3
-    from mock import Mock  # type: ignore
+    from mock import MagicMock, Mock  # type: ignore
 
 
 class MockClient(AadClient):
@@ -28,7 +28,7 @@ class MockClient(AadClient):
 
 def test_uses_msal_correctly():
     session = Mock()
-    transport = Mock()
+    transport = MagicMock()
     session.get = session.post = transport
 
     client = MockClient("tenant id", "client id", session=session)
@@ -53,7 +53,7 @@ def test_error_reporting():
     error_response = {"error": error_name, "error_description": error_description}
 
     response = Mock(status_code=403, json=lambda: error_response)
-    transport = Mock(return_value=response)
+    transport = MagicMock(return_value=response)
     session = Mock(get=transport, post=transport)
     client = MockClient("tenant id", "client id", session=session)
 
@@ -74,7 +74,7 @@ def test_exceptions_do_not_expose_secrets():
     secret = "secret"
     body = {"error": "bad thing", "access_token": secret, "refresh_token": secret}
     response = Mock(status_code=403, json=lambda: body)
-    transport = Mock(return_value=response)
+    transport = MagicMock(return_value=response)
     session = Mock(get=transport, post=transport)
     client = MockClient("tenant id", "client id", session=session)
 
@@ -109,7 +109,7 @@ def test_request_url():
         assert path.startswith("/" + tenant_id)
         return mock_response(json_payload={"token_type": "Bearer", "expires_in": 42, "access_token": "***"})
 
-    client = AadClient(tenant_id, "client id", transport=Mock(send=send), authority=authority)
+    client = AadClient(tenant_id, "client id", transport=MagicMock(send=send), authority=authority)
 
     client.obtain_token_by_authorization_code("code", "uri", "scope")
     client.obtain_token_by_refresh_token("refresh token", "scope")

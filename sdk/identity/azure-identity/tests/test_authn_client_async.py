@@ -3,13 +3,12 @@
 # Licensed under the MIT License.
 # ------------------------------------
 import asyncio
-from unittest.mock import Mock
 from urllib.parse import urlparse
 
 import pytest
 from azure.identity.aio._authn_client import AsyncAuthnClient
 
-from helpers import mock_response
+from helpers import AsyncMockTransport, mock_response
 
 
 @pytest.mark.asyncio
@@ -24,5 +23,7 @@ async def test_request_url():
         assert path.startswith("/" + tenant)
         return mock_response(json_payload={"token_type": "Bearer", "expires_in": 42, "access_token": "***"})
 
-    client = AsyncAuthnClient(tenant=tenant, transport=Mock(send=asyncio.coroutine(mock_send)), authority=authority)
+    client = AsyncAuthnClient(
+        tenant=tenant, transport=AsyncMockTransport(send=asyncio.coroutine(mock_send)), authority=authority
+    )
     await client.request_token(("scope",))

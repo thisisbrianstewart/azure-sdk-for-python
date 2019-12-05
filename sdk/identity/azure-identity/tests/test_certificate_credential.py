@@ -11,9 +11,9 @@ from six.moves.urllib_parse import urlparse
 from helpers import build_aad_response, urlsafeb64_decode, mock_response
 
 try:
-    from unittest.mock import Mock, patch
+    from unittest.mock import MagicMock, Mock
 except ImportError:  # python < 3.3
-    from mock import Mock, patch  # type: ignore
+    from mock import MagicMock, Mock  # type: ignore
 
 CERT_PATH = os.path.join(os.path.dirname(__file__), "certificate.pem")
 
@@ -25,7 +25,7 @@ def test_policies_configurable():
         return mock_response(json_payload=build_aad_response(access_token="**"))
 
     credential = CertificateCredential(
-        "tenant-id", "client-id", CERT_PATH, policies=[ContentDecodePolicy(), policy], transport=Mock(send=send)
+        "tenant-id", "client-id", CERT_PATH, policies=[ContentDecodePolicy(), policy], transport=MagicMock(send=send)
     )
 
     credential.get_token("scope")
@@ -48,7 +48,9 @@ def test_request_url():
         validate_url(request.url)
         return mock_response(json_payload={"token_type": "Bearer", "expires_in": 42, "access_token": access_token})
 
-    cred = CertificateCredential(tenant_id, "client_id", CERT_PATH, transport=Mock(send=mock_send), authority=authority)
+    cred = CertificateCredential(
+        tenant_id, "client_id", CERT_PATH, transport=MagicMock(send=mock_send), authority=authority
+    )
     token = cred.get_token("scope")
     assert token.token == access_token
 
@@ -71,6 +73,8 @@ def test_request_body():
         validate_url(claims["aud"])
         return mock_response(json_payload={"token_type": "Bearer", "expires_in": 42, "access_token": access_token})
 
-    cred = CertificateCredential(tenant_id, "client_id", CERT_PATH, transport=Mock(send=mock_send), authority=authority)
+    cred = CertificateCredential(
+        tenant_id, "client_id", CERT_PATH, transport=MagicMock(send=mock_send), authority=authority
+    )
     token = cred.get_token("scope")
     assert token.token == access_token

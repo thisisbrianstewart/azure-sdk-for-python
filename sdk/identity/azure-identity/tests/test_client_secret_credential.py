@@ -10,9 +10,9 @@ from azure.identity import ClientSecretCredential
 from helpers import build_aad_response, mock_response, Request, validating_transport
 
 try:
-    from unittest.mock import Mock
+    from unittest.mock import MagicMock, Mock
 except ImportError:  # python < 3.3
-    from mock import Mock  # type: ignore
+    from mock import MagicMock, Mock  # type: ignore
 
 
 def test_policies_configurable():
@@ -22,7 +22,11 @@ def test_policies_configurable():
         return mock_response(json_payload=build_aad_response(access_token="**"))
 
     credential = ClientSecretCredential(
-        "tenant-id", "client-id", "client-secret", policies=[ContentDecodePolicy(), policy], transport=Mock(send=send)
+        "tenant-id",
+        "client-id",
+        "client-secret",
+        policies=[ContentDecodePolicy(), policy],
+        transport=MagicMock(send=send),
     )
 
     credential.get_token("scope")
@@ -73,7 +77,7 @@ def test_cache():
     scope = "scope"
 
     credential = ClientSecretCredential(
-        tenant_id="some-guid", client_id="client_id", client_secret="secret", transport=Mock(send=mock_send)
+        tenant_id="some-guid", client_id="client_id", client_secret="secret", transport=MagicMock(send=mock_send)
     )
 
     # get_token initially returns the expired token because the credential

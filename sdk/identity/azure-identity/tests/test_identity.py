@@ -7,9 +7,9 @@ import json
 import time
 
 try:
-    from unittest.mock import Mock, patch
+    from unittest.mock import MagicMock, Mock, patch
 except ImportError:  # python < 3.3
-    from mock import Mock, patch  # type: ignore
+    from mock import MagicMock, Mock, patch  # type: ignore
 
 from azure.core.credentials import AccessToken
 from azure.core.exceptions import ClientAuthenticationError
@@ -123,7 +123,7 @@ def test_imds_credential_cache():
     )
     mock_send = Mock(return_value=mock_response)
 
-    credential = ImdsCredential(transport=Mock(send=mock_send))
+    credential = ImdsCredential(transport=MagicMock(send=mock_send))
     token = credential.get_token(scope)
     assert token.token == expired
     assert mock_send.call_count == 2  # first request was probing for endpoint availability
@@ -157,7 +157,7 @@ def test_imds_credential_retries():
         mock_send.reset_mock()
         mock_response.status_code = status_code
         try:
-            ImdsCredential(transport=Mock(send=mock_send)).get_token("scope")
+            ImdsCredential(transport=MagicMock(send=mock_send)).get_token("scope")
         except ClientAuthenticationError:
             pass
         # first call was availability probe, second the original request;

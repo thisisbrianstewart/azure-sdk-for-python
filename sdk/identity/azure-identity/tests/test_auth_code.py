@@ -9,9 +9,9 @@ from azure.identity import AuthorizationCodeCredential
 from helpers import build_aad_response, mock_response
 
 try:
-    from unittest.mock import Mock
+    from unittest.mock import MagicMock, Mock
 except ImportError:  # python < 3.3
-    from mock import Mock  # type: ignore
+    from mock import MagicMock, Mock  # type: ignore
 
 
 def test_policies_configurable():
@@ -21,7 +21,7 @@ def test_policies_configurable():
         return mock_response(json_payload=build_aad_response(access_token="**"))
 
     credential = AuthorizationCodeCredential(
-        "tenant-id", "client-id", "auth-code", "http://localhost", policies=[policy], transport=Mock(send=send)
+        "tenant-id", "client-id", "auth-code", "http://localhost", policies=[policy], transport=MagicMock(send=send)
     )
 
     credential.get_token("scope")

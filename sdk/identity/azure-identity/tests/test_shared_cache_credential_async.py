@@ -18,7 +18,7 @@ from azure.identity._internal.shared_token_cache import (
 from msal import TokenCache
 import pytest
 
-from helpers import async_validating_transport, build_aad_response, build_id_token, mock_response, Request
+from helpers import AsyncMockTransport, async_validating_transport, build_aad_response, mock_response, Request
 from test_shared_cache_credential import get_account_event, populated_cache
 
 
@@ -32,7 +32,7 @@ async def test_policies_configurable():
     credential = SharedTokenCacheCredential(
         _cache=populated_cache(get_account_event("test@user", "uid", "utid")),
         policies=[policy],
-        transport=Mock(send=send),
+        transport=AsyncMockTransport(send=send),
     )
 
     await credential.get_token("scope")
@@ -120,7 +120,7 @@ async def test_no_matching_account_for_tenant_or_username():
     account_b = get_account_event(username=upn_b, uid="uid_b", utid=tenant_b, refresh_token=refresh_token_b)
     cache = populated_cache(account_a, account_b)
 
-    transport = Mock(side_effect=Exception())  # credential shouldn't use the network
+    transport = AsyncMockTransport(side_effect=Exception())  # credential shouldn't use the network
 
     credential = SharedTokenCacheCredential(username=upn_a, tenant_id=tenant_b, _cache=cache, transport=transport)
     with pytest.raises(ClientAuthenticationError) as ex:
@@ -225,7 +225,7 @@ async def test_no_refresh_token():
     account = get_account_event(uid="uid_a", utid="utid", username="spam@eggs", refresh_token=None)
     cache = populated_cache(account)
 
-    transport = Mock(side_effect=Exception())  # credential shouldn't use the network
+    transport = AsyncMockTransport(side_effect=Exception())  # credential shouldn't use the network
 
     credential = SharedTokenCacheCredential(_cache=cache, transport=transport)
     with pytest.raises(ClientAuthenticationError, match=NO_ACCOUNTS):
@@ -247,7 +247,7 @@ async def test_two_accounts_no_username_or_tenant():
     cache = populated_cache(account_a, account_b)
 
     # credential can't select an identity => it shouldn't use the network
-    transport = Mock(side_effect=Exception())
+    transport = AsyncMockTransport(side_effect=Exception())
 
     # two users in the cache, no username specified -> ClientAuthenticationError
     credential = SharedTokenCacheCredential(_cache=cache, transport=transport)
@@ -344,7 +344,7 @@ async def test_same_username_different_tenants():
     cache = populated_cache(account_a, account_b)
 
     # with no tenant specified the credential can't select an identity
-    transport = Mock(side_effect=Exception())  # (so it shouldn't use the network)
+    transport = AsyncMockTransport(side_effect=Exception())  # (so it shouldn't use the network)
     credential = SharedTokenCacheCredential(username=upn, _cache=cache, transport=transport)
     with pytest.raises(ClientAuthenticationError) as ex:
         await credential.get_token("scope")
@@ -390,7 +390,7 @@ async def test_same_tenant_different_usernames():
     cache = populated_cache(account_a, account_b)
 
     # with no username specified the credential can't select an identity
-    transport = Mock(side_effect=Exception())  # (so it shouldn't use the network)
+    transport = AsyncMockTransport(side_effect=Exception())  # (so it shouldn't use the network)
     credential = SharedTokenCacheCredential(tenant_id=tenant_id, _cache=cache, transport=transport)
     with pytest.raises(ClientAuthenticationError) as ex:
         await credential.get_token("scope")

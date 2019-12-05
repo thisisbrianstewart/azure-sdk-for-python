@@ -18,9 +18,9 @@ from helpers import mock_response, Request, validating_transport
 from test_shared_cache_credential import build_aad_response, get_account_event, populated_cache
 
 try:
-    from unittest.mock import Mock, patch
+    from unittest.mock import MagicMock, patch
 except ImportError:  # python < 3.3
-    from mock import Mock, patch  # type: ignore
+    from mock import MagicMock, patch  # type: ignore
 
 
 def test_default_credential_authority():
@@ -54,13 +54,13 @@ def test_default_credential_authority():
             EnvironmentVariables.AZURE_TENANT_ID: "tenant_id",
         }
         with patch("os.environ", environment):
-            transport = Mock(send=send)
+            transport = MagicMock(send=send)
             access_token, _ = DefaultAzureCredential(authority=authority_kwarg, transport=transport).get_token("scope")
             assert access_token == expected_access_token
 
         # managed identity credential should ignore authority
         with patch("os.environ", {EnvironmentVariables.MSI_ENDPOINT: "https://some.url"}):
-            transport = Mock(send=lambda *_, **__: response)
+            transport = MagicMock(send=lambda *_, **__: response)
             access_token, _ = DefaultAzureCredential(authority=authority_kwarg, transport=transport).get_token("scope")
             assert access_token == expected_access_token
 
@@ -70,7 +70,7 @@ def test_default_credential_authority():
         account = get_account_event(username=upn, uid="guid", utid=tenant, authority=authority_kwarg)
         cache = populated_cache(account)
         with patch.object(SharedTokenCacheCredential, "supported"):
-            credential = DefaultAzureCredential(_cache=cache, authority=authority_kwarg, transport=Mock(send=send))
+            credential = DefaultAzureCredential(_cache=cache, authority=authority_kwarg, transport=MagicMock(send=send))
         access_token, _ = credential.get_token("scope")
         assert access_token == expected_access_token
 

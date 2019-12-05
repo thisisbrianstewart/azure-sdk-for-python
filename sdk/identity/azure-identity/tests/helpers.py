@@ -126,7 +126,7 @@ def validating_transport(requests, responses):
         expected_request.assert_matches(request)
         return response
 
-    return mock.Mock(send=mock.Mock(wraps=validate_request))
+    return mock.MagicMock(send=mock.Mock(wraps=validate_request))
 
 
 def urlsafeb64_decode(s):
@@ -140,9 +140,30 @@ def urlsafeb64_decode(s):
 try:
     import asyncio
 
+    def get_completed_future(result=None):
+        future = asyncio.Future()
+        future.set_result(result)
+        return future
+
+    class AsyncMockTransport(mock.MagicMock):
+        """MagicMock with do-nothing aenter/exit, for mocking async transport.
+
+        aenter/exit here return completed Futures so they needn't be declared async. If they were async functions,
+        2.7 would raise SyntaxError on importing this module.
+
+        3.9.0, or a future version of 3.8, will obviate this class: MagicMock will eventually implement aenter/exit
+        (https://bugs.python.org/issue38093).
+        """
+
+        def __aenter__(self):
+            return get_completed_future()
+
+        def __aexit__(self, *exc_info):
+            return get_completed_future()
+
     def async_validating_transport(requests, responses):
         sync_transport = validating_transport(requests, responses)
-        return mock.Mock(send=asyncio.coroutine(sync_transport.send))
+        return AsyncMockTransport(send=asyncio.coroutine(sync_transport.send))
 
 
 except ImportError:

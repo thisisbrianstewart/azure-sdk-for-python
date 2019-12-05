@@ -23,9 +23,9 @@ from helpers import (
 )
 
 try:
-    from unittest.mock import Mock, patch
+    from unittest.mock import MagicMock, Mock, patch
 except ImportError:  # python < 3.3
-    from mock import Mock, patch  # type: ignore
+    from mock import MagicMock, Mock, patch  # type: ignore
 
 
 @patch("azure.identity._credentials.browser.webbrowser.open", lambda _: True)
@@ -136,7 +136,7 @@ def test_interactive_credential(mock_open):
 @patch("azure.identity._credentials.browser.webbrowser.open", lambda _: True)
 def test_interactive_credential_timeout():
     # mock transport handles MSAL's tenant discovery
-    transport = Mock(
+    transport = MagicMock(
         send=lambda _, **__: mock_response(
             json_payload={"authorization_endpoint": "https://a/b", "token_endpoint": "https://a/b"}
         )

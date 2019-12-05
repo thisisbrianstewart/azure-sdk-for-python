@@ -4,7 +4,7 @@
 # ------------------------------------
 import asyncio
 import os
-from unittest.mock import Mock, patch
+from unittest.mock import patch
 from urllib.parse import urlparse
 
 from azure.core.credentials import AccessToken
@@ -14,7 +14,7 @@ from azure.identity.aio._credentials.managed_identity import ImdsCredential, Msi
 from azure.identity._constants import EnvironmentVariables
 import pytest
 
-from helpers import async_validating_transport, mock_response, Request
+from helpers import AsyncMockTransport, async_validating_transport, mock_response, Request
 from test_shared_cache_credential import build_aad_response, get_account_event, populated_cache
 
 
@@ -51,7 +51,7 @@ async def test_default_credential_authority():
             EnvironmentVariables.AZURE_TENANT_ID: "tenant_id",
         }
         with patch("os.environ", environment):
-            transport = Mock(send=send)
+            transport = AsyncMockTransport(send=send)
             if authority_kwarg:
                 credential = DefaultAzureCredential(authority=authority_kwarg, transport=transport)
             else:
@@ -61,7 +61,7 @@ async def test_default_credential_authority():
 
         # managed identity credential should ignore authority
         with patch("os.environ", {EnvironmentVariables.MSI_ENDPOINT: "https://some.url"}):
-            transport = Mock(send=asyncio.coroutine(lambda *_, **__: response))
+            transport = AsyncMockTransport(send=asyncio.coroutine(lambda *_, **__: response))
             if authority_kwarg:
                 credential = DefaultAzureCredential(authority=authority_kwarg, transport=transport)
             else:
@@ -75,7 +75,9 @@ async def test_default_credential_authority():
         account = get_account_event(username=upn, uid="guid", utid=tenant, authority=authority_kwarg)
         cache = populated_cache(account)
         with patch.object(SharedTokenCacheCredential, "supported"):
-            credential = DefaultAzureCredential(_cache=cache, authority=authority_kwarg, transport=Mock(send=send))
+            credential = DefaultAzureCredential(
+                _cache=cache, authority=authority_kwarg, transport=AsyncMockTransport(send=send)
+            )
         access_token, _ = await credential.get_token("scope")
         assert access_token == expected_access_token
 
