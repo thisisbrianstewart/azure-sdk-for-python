@@ -2,14 +2,20 @@
 # Copyright (c) Microsoft Corporation.
 # Licensed under the MIT License.
 # ------------------------------------
-import asyncio
 import time
 from unittest.mock import Mock
 
 from azure.core.credentials import AccessToken
 from azure.core.pipeline.policies import ContentDecodePolicy, SansIOHTTPPolicy
 from azure.identity.aio import ClientSecretCredential
-from helpers import AsyncMockTransport, async_validating_transport, build_aad_response, mock_response, Request
+from helpers import (
+    AsyncMockTransport,
+    async_validating_transport,
+    build_aad_response,
+    mock_response,
+    Request,
+    wrap_in_future,
+)
 
 import pytest
 
@@ -78,7 +84,7 @@ async def test_cache():
         "token_type": "Bearer",
     }
     mock_send = Mock(return_value=mock_response(json_payload=token_payload))
-    transport = AsyncMockTransport(send=asyncio.coroutine(mock_send))
+    transport = AsyncMockTransport(send=wrap_in_future(mock_send))
     scope = "scope"
 
     credential = ClientSecretCredential("tenant-id", "client-id", "secret", transport=transport)

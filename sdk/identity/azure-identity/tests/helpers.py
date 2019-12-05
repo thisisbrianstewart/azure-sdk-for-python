@@ -3,10 +3,10 @@
 # Licensed under the MIT License.
 # ------------------------------------
 import base64
+import functools
 import json
 import time
 
-from azure.core.pipeline.policies import SansIOHTTPPolicy
 import six
 
 try:
@@ -145,6 +145,19 @@ try:
         future.set_result(result)
         return future
 
+    def wrap_in_future(fn):
+        """Return a completed Future whose result is the return of fn.
+
+        Added to simplify using unittest.Mock in async code. Python 3.8's AsyncMock would be preferable.
+        """
+
+        @functools.wraps(fn)
+        def wrapper(*args, **kwargs):
+            result = fn(*args, **kwargs)
+            return get_completed_future(result)
+        return wrapper
+
+
     class AsyncMockTransport(mock.MagicMock):
         """MagicMock with do-nothing aenter/exit, for mocking async transport.
 
@@ -163,7 +176,12 @@ try:
 
     def async_validating_transport(requests, responses):
         sync_transport = validating_transport(requests, responses)
-        return AsyncMockTransport(send=asyncio.coroutine(sync_transport.send))
+
+        def send(*args, **kwargs):
+            result = sync_transport.send(*args, **kwargs)
+            return get_completed_future(result)
+
+        return AsyncMockTransport(send=send)
 
 
 except ImportError:

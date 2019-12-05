@@ -2,7 +2,6 @@
 # Copyright (c) Microsoft Corporation.
 # Licensed under the MIT License.
 # ------------------------------------
-import asyncio
 import json
 import os
 import time
@@ -21,7 +20,7 @@ from azure.identity.aio import (
 from azure.identity.aio._credentials.managed_identity import ImdsCredential
 from azure.identity._constants import EnvironmentVariables
 
-from helpers import AsyncMockTransport, mock_response, Request, async_validating_transport
+from helpers import AsyncMockTransport, mock_response, Request, async_validating_transport, wrap_in_future
 
 
 @pytest.mark.asyncio
@@ -84,7 +83,7 @@ async def test_chain_attempts_all_credentials():
     credentials = [
         Mock(get_token=Mock(wraps=raise_authn_error)),
         Mock(get_token=Mock(wraps=raise_authn_error)),
-        Mock(get_token=asyncio.coroutine(lambda _: expected_token)),
+        Mock(get_token=wrap_in_future(lambda _: expected_token)),
     ]
 
     token = await ChainedTokenCredential(*credentials).get_token("scope")
@@ -97,7 +96,7 @@ async def test_chain_attempts_all_credentials():
 @pytest.mark.asyncio
 async def test_chain_returns_first_token():
     expected_token = Mock()
-    first_credential = Mock(get_token=asyncio.coroutine(lambda _: expected_token))
+    first_credential = Mock(get_token=wrap_in_future(lambda _: expected_token))
     second_credential = Mock(get_token=Mock())
 
     aggregate = ChainedTokenCredential(first_credential, second_credential)
@@ -130,7 +129,7 @@ async def test_imds_credential_cache():
     )
     mock_send = Mock(return_value=mock_response)
 
-    credential = ImdsCredential(transport=AsyncMockTransport(send=asyncio.coroutine(mock_send)))
+    credential = ImdsCredential(transport=AsyncMockTransport(send=wrap_in_future(mock_send)))
     token = await credential.get_token(scope)
     assert token.token == expired
     assert mock_send.call_count == 2  # first request was probing for endpoint availability
@@ -166,7 +165,7 @@ async def test_imds_credential_retries():
         mock_response.status_code = status_code
         try:
             await ImdsCredential(
-                transport=AsyncMockTransport(send=asyncio.coroutine(mock_send), sleep=asyncio.coroutine(lambda _: None))
+                transport=AsyncMockTransport(send=wrap_in_future(mock_send), sleep=wrap_in_future(lambda _: None))
             ).get_token("scope")
         except ClientAuthenticationError:
             pass
